@@ -1,0 +1,31 @@
+[tools]
+tuist = "4.206.0"
+
+[env]
+# Validate the selection before exporting package configuration.
+OPENSWIFTUI = """
+{%- set selected = mise_env | default(value=[]) -%}
+{%- for name in selected -%}
+  {%- if name not in ['sui', 'osui-source', 'osui-binary', 'local', 'ag', 'compute'] -%}
+    {{- throw(message='Unknown Game2048 environment: ' ~ name) -}}
+  {%- endif -%}
+{%- endfor -%}
+{%- if ('sui' in selected and ('osui-source' in selected or 'osui-binary' in selected)) or ('osui-source' in selected and 'osui-binary' in selected) -%}
+  {{- throw(message='Select only one renderer: sui, osui-source, or osui-binary.') -}}
+{%- endif -%}
+{%- if 'ag' in selected and 'compute' in selected -%}
+  {{- throw(message='Select only one backend: ag or compute.') -}}
+{%- endif -%}
+{%- if ('local' in selected or 'ag' in selected or 'compute' in selected) and ('sui' in selected or 'osui-binary' in selected) -%}
+  {{- throw(message='The local, ag, and compute options require the osui-source renderer.') -}}
+{%- endif -%}
+{%- if 'sui' in selected -%}0{%- else -%}1{%- endif -%}
+"""
+OPENSWIFTUI_BINARY = "{% if mise_env is defined and ('sui' in mise_env or 'osui-binary' in mise_env) %}1{% else %}0{% endif %}"
+OPENSWIFTUI_USE_LOCAL_DEPS = "{% if mise_env is defined and 'local' in mise_env %}1{% else %}0{% endif %}"
+OPENSWIFTUI_OPENATTRIBUTESHIMS_ATTRIBUTEGRAPH = "{% if mise_env is defined and ('sui' in mise_env or 'osui-binary' in mise_env or 'compute' in mise_env) %}0{% else %}1{% endif %}"
+OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE = "{% if mise_env is defined and 'compute' in mise_env %}1{% else %}0{% endif %}"
+OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_BINARY = "0"
+
+# These settings apply only when the Compute backend is enabled.
+OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_SOURCE_VERSION = "0.6.0-bugfix.2"

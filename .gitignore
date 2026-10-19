@@ -1,0 +1,11 @@
+.DS_Store
+.build/
+.swiftpm/
+.tuist-cache/
+build/
+DerivedData/
+Derived/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.xcuserstate
