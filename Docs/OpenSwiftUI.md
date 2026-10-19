@@ -28,17 +28,28 @@ Run from the repository root. For example, to use local OpenSwiftUI and Compute:
 
 ```sh
 export MISE_ENV=osui-source,local,compute
-mise trust
-mise install
-mise exec -- tuist clean --path App
-mise exec -- tuist generate --path App
+make apple_setup
+make iOS
 ```
 
 After changing the selection or its settings in `mise.toml`, clean and generate
-again in the selected environment. Use `export MISE_ENV=sui` for system SwiftUI,
+again with `make apple_setup` in the selected environment. Use `export MISE_ENV=sui` for system SwiftUI,
 or `unset MISE_ENV` to restore the default OpenSwiftUI source configuration.
 The selection applies to the current terminal session; set it again in a new
 terminal. For one command, use `mise --env osui-source exec -- <command>`.
+
+Use `make macOS` or `make visionOS` for the other Apple platforms. Build targets
+accept `CONFIGURATION` and `DESTINATION` overrides, for example:
+
+```sh
+make iOS CONFIGURATION=Release DESTINATION='generic/platform=iOS'
+```
+
+Use `make iOS_run`, `make macOS_run`, or `make visionOS_run` to build and launch
+the app. Simulator runs prefer a booted device for the selected platform, then
+fall back to an available device. Use `DEVICE=<simulator-UDID>` to select one.
+Run targets accept `CONFIGURATION`; they choose their build destination from
+the platform and device. `make apple_setup` generates without opening Xcode.
 
 To reopen the workspace, fully quit Xcode, then launch it from the configured
 terminal:

@@ -11,15 +11,14 @@ Swipe the board or press the arrow keys to move tiles.
 - Tuist 4.206.0
 - iOS 18, macOS 15, or visionOS 2
 
-## Generate the project
+## Build
 
 Uses OpenSwiftUI source by default. Set `MISE_ENV=sui` to use SwiftUI on Apple platform.
 
 ```sh
-mise trust
-mise install
-mise exec -- tuist clean --path App
-mise exec -- tuist generate --path App
+make apple_setup
+make macOS_run
+# Or: make iOS_run / visionOS_run
 ```
 
 ## OpenSwiftUI integration
