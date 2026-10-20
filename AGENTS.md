@@ -17,6 +17,9 @@
   by `tuist generate --path App --no-open` in the same mise environment.
   `mise install` installs tools; it does not clear Tuist state or resolve Swift
   packages. `tuist generate` resolves package dependencies.
+- Use the workspace's `App/.build` DerivedData location so explicit SDK stub
+  references match native SwiftPM paths. If generation reports unresolved stubs,
+  clean and generate again after package resolution, before building.
 - Xcode must inherit the selected environment when it starts. Scheme launch
   variables do not configure package manifest evaluation.
 

@@ -21,25 +21,30 @@ if useOpenSwiftUI {
         )
         appDependencies.append(.package(product: "OpenSwiftUI"))
     } else {
-        let frameworksPath: String
+        let resolvedFrameworksPath: String?
         if useLocalDeps {
-            frameworksPath = "../../DarwinPrivateFrameworks"
+            resolvedFrameworksPath = "../../DarwinPrivateFrameworks"
         } else {
-            frameworksPath = try remotePrivateFrameworksPath()
+            resolvedFrameworksPath = try remotePrivateFrameworksPath()
         }
-        // Direct references let Xcode process the SDK stubs as XCFrameworks.
-        appDependencies += [
-            .xcframework(path: .path("\(frameworksPath)/AG/2024/AttributeGraph.xcframework")),
-            .xcframework(path: .path("\(frameworksPath)/RB/2024/RenderBox.xcframework")),
-            .xcframework(path: .path("\(frameworksPath)/CoreUI/2024/CoreUI.xcframework")),
-            .xcframework(path: .path("\(frameworksPath)/CoreSVG/2024/CoreSVG.xcframework")),
-            .xcframework(path: .path("\(frameworksPath)/SFSymbols/2024/SFSymbols.xcframework")),
-            .xcframework(path: .path("\(frameworksPath)/FeatureFlags/2024/FeatureFlags.xcframework")),
-            .xcframework(
-                path: .path("\(frameworksPath)/BLS/2024/BacklightServices.xcframework"),
-                condition: .when([.ios, .visionos])
-            ),
-        ]
+        if let frameworksPath = resolvedFrameworksPath {
+            // Direct references let Xcode process the SDK stubs as XCFrameworks.
+            appDependencies += [
+                .xcframework(path: .path("\(frameworksPath)/AG/2024/AttributeGraph.xcframework")),
+                .xcframework(path: .path("\(frameworksPath)/RB/2024/RenderBox.xcframework")),
+                .xcframework(path: .path("\(frameworksPath)/CoreUI/2024/CoreUI.xcframework")),
+                .xcframework(path: .path("\(frameworksPath)/CoreSVG/2024/CoreSVG.xcframework")),
+                .xcframework(path: .path("\(frameworksPath)/SFSymbols/2024/SFSymbols.xcframework")),
+                .xcframework(path: .path("\(frameworksPath)/FeatureFlags/2024/FeatureFlags.xcframework")),
+                .xcframework(
+                    path: .path("\(frameworksPath)/BLS/2024/BacklightServices.xcframework"),
+                    condition: .when([.ios, .visionos])
+                ),
+            ]
+        } else {
+            // Native packages resolve after Tuist evaluates this manifest.
+            print("Remote SDK stubs are not resolved. After package resolution, run tuist clean and tuist generate again before building.")
+        }
     }
 }
 
@@ -106,7 +111,7 @@ let project = Project(
 )
 
 // Xcode owns native SwiftPM checkouts. Match this workspace before reading its package state.
-private func remotePrivateFrameworksPath() throws -> String {
+private func remotePrivateFrameworksPath() throws -> String? {
     if let path = env["OPENSWIFTUI_DARWIN_PRIVATE_FRAMEWORKS_PATH"] {
         return path
     }
@@ -114,19 +119,23 @@ private func remotePrivateFrameworksPath() throws -> String {
     let workspace = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .appendingPathComponent("Game2048App.xcworkspace")
-        .resolvingSymlinksInPath()
-    let derivedData = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent("Library/Developer/Xcode/DerivedData")
-    let directories = try FileManager.default.contentsOfDirectory(
-        at: derivedData,
-        includingPropertiesForKeys: nil
-    )
-    for directory in directories.sorted(by: { $0.path < $1.path }) {
-        guard let infoData = try? Data(contentsOf: directory.appendingPathComponent("info.plist")),
-              let info = try? PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any],
-              let workspacePath = info["WorkspacePath"] as? String,
-              URL(fileURLWithPath: workspacePath).resolvingSymlinksInPath() == workspace else {
+    let derivedData = workspace.deletingLastPathComponent().appendingPathComponent(".build")
+    guard FileManager.default.fileExists(atPath: derivedData.path) else {
+        return nil
+    }
+    let directories = try FileManager.default.contentsOfDirectory(atPath: derivedData.path)
+    for name in directories.sorted() {
+        guard name.hasPrefix("Game2048App-") else {
             continue
+        }
+        let directory = derivedData.appendingPathComponent(name)
+        // Package resolution can create checkouts before Xcode writes info.plist.
+        if let infoData = try? Data(contentsOf: directory.appendingPathComponent("info.plist")) {
+            guard let info = try? PropertyListSerialization.propertyList(from: infoData, format: nil) as? [String: Any],
+                  let workspacePath = info["WorkspacePath"] as? String,
+                  URL(fileURLWithPath: workspacePath).resolvingSymlinksInPath() == workspace.resolvingSymlinksInPath() else {
+                continue
+            }
         }
         let sourcePackages = directory.appendingPathComponent("SourcePackages")
         guard let stateData = try? Data(contentsOf: sourcePackages.appendingPathComponent("workspace-state.json")),
@@ -147,10 +156,5 @@ private func remotePrivateFrameworksPath() throws -> String {
             }
         }
     }
-    throw NSError(
-        domain: "Game2048",
-        code: 1,
-        userInfo: [NSLocalizedDescriptionKey:
-            "Resolve the remote packages first, or set OPENSWIFTUI_DARWIN_PRIVATE_FRAMEWORKS_PATH to the resolved DarwinPrivateFrameworks checkout."]
-    )
+    return nil
 }

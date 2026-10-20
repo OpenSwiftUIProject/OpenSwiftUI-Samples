@@ -51,6 +51,24 @@ fall back to an available device. Use `DEVICE=<simulator-UDID>` to select one.
 Run targets accept `CONFIGURATION`; they choose their build destination from
 the platform and device. `make apple_setup` generates without opening Xcode.
 
+The workspace stores DerivedData in a workspace-specific folder under
+`App/.build`. Build the `.xcworkspace` without overriding `-derivedDataPath` or
+`-clonedSourcePackagesDirPath`. Tuist emits absolute XCFramework references under
+`.build`, which allows Xcode to match the SDK stubs to native SwiftPM dependencies.
+
+If generation reports that remote SDK stubs are not resolved, run these commands
+once more before building:
+
+```sh
+mise exec -- tuist clean --path App
+mise exec -- tuist generate --path App --no-open
+```
+
+The first pass resolves the packages; the second adds the SDK stub references.
+Cleaning is required because Tuist caches the evaluated manifest.
+This can be needed with an empty cache or after switching from local to remote
+source dependencies. No generated-project patch is required.
+
 To reopen the workspace, fully quit Xcode, then launch it from the configured
 terminal:
 
