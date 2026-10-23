@@ -1,8 +1,13 @@
-# Game2048
+# OpenSwiftUI-Samples
 
-A modern, universal OpenSwiftUI implementation of 2048.
+Sample apps built with OpenSwiftUI for iOS, macOS, and visionOS.
 
-Swipe the board or press the arrow keys to move tiles.
+## Samples
+
+| Sample | Description |
+| --- | --- |
+| [HelloWorld](Samples/HelloWorld) | A globe image and a greeting |
+| [Game2048](Samples/Game2048) | A 2048 game with swipe and keyboard controls |
 
 ## Requirements
 
@@ -11,23 +16,40 @@ Swipe the board or press the arrow keys to move tiles.
 - Tuist 4.206.0
 - iOS 18, macOS 15, or visionOS 2
 
-## Build
+## Build and run
 
-Uses OpenSwiftUI source by default. Set `MISE_ENV=sui` to use SwiftUI on Apple platform.
+Uses OpenSwiftUI source by default. Set `MISE_ENV=sui` to use system SwiftUI.
 
-```sh
-make apple_setup
-make macOS_run
-# Or: make iOS_run / visionOS_run
+```text
+Usage:
+  make apple_setup
+  make <platform> [SAMPLE=<name>] [CONFIGURATION=<config>] [DESTINATION='<destination>'] [DEVELOPMENT_TEAM=<id>]
+  make [<platform>_run] [SAMPLE=<name>] [CONFIGURATION=<config>] [DESTINATION='<destination>'] [DEVELOPMENT_TEAM=<id>]
+
+Targets:
+  apple_setup       Install tools, clean, and generate the workspace without opening Xcode.
+  <platform>        Build for iOS, macOS, or visionOS.
+  <platform>_run    Build and launch. Default: macOS_run.
+
+Options:
+  SAMPLE            Sample directory name under Samples/. Default: HelloWorld.
+  CONFIGURATION     Debug or Release. Default: Debug.
+  DESTINATION       Xcode destination for build and run. Defaults to this Mac or a simulator.
+  DEVELOPMENT_TEAM  Team ID for automatic signing. Uses project settings if omitted.
 ```
 
-## OpenSwiftUI integration
+`<...>` marks a placeholder; `[...]` marks an optional argument. Run `make apple_setup`
+before the first build and after changing `MISE_ENV`.
+
+For a physical device, use `DESTINATION='platform=<platform>,id=<udid>'`.
+For a specific simulator, use `DESTINATION='platform=<platform> Simulator,id=<udid>'`.
+See [device setup](Docs/OpenSwiftUI.md#run-on-a-device) for signing and device discovery.
+
+All samples share `App/OpenSwiftUISamples.xcworkspace`. Each sample has its own
+`Project.swift` and a `<SampleName>App` scheme. Shared Tuist helpers configure
+OpenSwiftUI and the app targets. See [Samples](#samples) for available sample names.
 
 See [OpenSwiftUI integration](Docs/OpenSwiftUI.md) for source, binary, and Compute configurations.
-
-## Credits
-
-Game2048 is inspired by [OpenSwiftUI-2048](https://github.com/OpenSwiftUIProject/OpenSwiftUI-2048)
 
 ## License
 

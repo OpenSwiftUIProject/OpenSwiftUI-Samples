@@ -1,10 +1,10 @@
 import ProjectDescription
 
 let workspace = Workspace(
-    name: "Game2048App",
-    projects: ["."],
-    // Tuist emits absolute references for precompiled dependencies under .build.
-    // Keep Xcode's remote SwiftPM checkouts here so the explicit SDK stub
-    // XCFramework references match SwiftPM's paths and avoid duplicate build tasks.
+    name: "OpenSwiftUISamples",
+    projects: ["../Samples/*"],
+    // Keep DerivedData and remote SwiftPM checkouts under App/.build.
+    // The shared dependency helper reads this workspace's package state so all
+    // sample projects reference the same SDK stubs as SwiftPM.
     generationOptions: .options(derivedDataPath: .custom(".build"))
 )

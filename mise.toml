@@ -7,7 +7,7 @@ OPENSWIFTUI = """
 {%- set selected = mise_env | default(value=[]) -%}
 {%- for name in selected -%}
   {%- if name not in ['sui', 'osui-source', 'osui-binary', 'local', 'ag', 'compute'] -%}
-    {{- throw(message='Unknown Game2048 environment: ' ~ name) -}}
+    {{- throw(message='Unknown OpenSwiftUI-Samples environment: ' ~ name) -}}
   {%- endif -%}
 {%- endfor -%}
 {%- if ('sui' in selected and ('osui-source' in selected or 'osui-binary' in selected)) or ('osui-source' in selected and 'osui-binary' in selected) -%}
