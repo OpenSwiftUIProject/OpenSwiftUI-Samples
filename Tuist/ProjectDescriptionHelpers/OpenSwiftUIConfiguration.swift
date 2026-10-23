@@ -23,7 +23,7 @@ struct OpenSwiftUIConfiguration {
         if binary {
             packages = [.package(
                 url: "https://github.com/OpenSwiftUIProject/OpenSwiftUI-spm.git",
-                from: "0.24.1"
+                from: "0.24.3"
             )]
             appDependencies = []
             return
