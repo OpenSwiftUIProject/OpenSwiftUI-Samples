@@ -1,6 +1,7 @@
 .DS_Store
 .build/
 .swiftpm/
+.package.resolved
 .tuist-cache/
 build/
 DerivedData/

@@ -59,7 +59,7 @@ def main():
 
     scheme = f"{args.sample}App"
     build = [
-        "xcodebuild", "-workspace", "App/OpenSwiftUISamples.xcworkspace",
+        "xcodebuild", "-workspace", "OpenSwiftUISamples.xcworkspace",
         "-scheme", scheme, "-configuration", args.configuration,
         "-destination", destination,
     ]

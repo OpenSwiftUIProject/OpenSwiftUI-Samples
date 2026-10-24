@@ -68,12 +68,12 @@ private func remotePrivateFrameworksPath(environment: [String: String]) throws -
         return path
     }
 
-    let workspace = URL(fileURLWithPath: #filePath)
+    let root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-        .appendingPathComponent("App/OpenSwiftUISamples.xcworkspace")
-    let derivedData = workspace.deletingLastPathComponent().appendingPathComponent(".build")
+    let workspace = root.appendingPathComponent("OpenSwiftUISamples.xcworkspace")
+    let derivedData = root.appendingPathComponent(".build")
     guard FileManager.default.fileExists(atPath: derivedData.path) else {
         return nil
     }

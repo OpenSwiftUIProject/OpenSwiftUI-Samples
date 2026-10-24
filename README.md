@@ -45,9 +45,9 @@ For a physical device, use `DESTINATION='platform=<platform>,id=<udid>'`.
 For a specific simulator, use `DESTINATION='platform=<platform> Simulator,id=<udid>'`.
 See [device setup](Docs/OpenSwiftUI.md#run-on-a-device) for signing and device discovery.
 
-All samples share `App/OpenSwiftUISamples.xcworkspace`. Each sample has its own
-`Project.swift` and a `<SampleName>App` scheme. Shared Tuist helpers configure
-OpenSwiftUI and the app targets. See [Samples](#samples) for available sample names.
+The root `Workspace.swift` generates `OpenSwiftUISamples.xcworkspace` for all samples.
+Each sample has its own `Project.swift` and a `<SampleName>App` scheme. Shared Tuist
+helpers configure OpenSwiftUI and the app targets. See [Samples](#samples) for available names.
 
 See [OpenSwiftUI integration](Docs/OpenSwiftUI.md) for source, binary, and Compute configurations.
 

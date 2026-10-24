@@ -6,7 +6,7 @@
   `Samples/<Name>/Sources`, `Tests`, and `Apple`.
 - Each sample declares a `Project.swift` with `Project.sample(...)`. Keep shared
   project and dependency logic in `Tuist/ProjectDescriptionHelpers`, the workspace
-  in `App/`, and shared environment selections in `mise.toml`.
+  in the root `Workspace.swift`, and shared environment selections in `mise.toml`.
 - `SAMPLE` selects an app; `MISE_ENV` selects its renderer and dependencies.
 - `DESTINATION` uses Xcode syntax for both build and run targets. Use `simctl`
   for simulators and `devicectl` for physical devices; keep signing teams configurable.
@@ -27,11 +27,11 @@
   from source.
 - Run commands from the repository root with `mise exec --`. Interactive shells
   configured with `eval "$(mise activate zsh)"` can omit this prefix.
-- After changing dependency configuration, run `tuist clean --path App` followed
-  by `tuist generate --path App --no-open` in the same mise environment.
+- After changing dependency configuration, run `tuist clean` followed
+  by `tuist generate --no-open` from the repository root in the same mise environment.
   `mise install` installs tools; it does not clear Tuist state or resolve Swift
   packages. `tuist generate` resolves package dependencies.
-- Use the workspace's `App/.build` DerivedData location so explicit SDK stub
+- Use the workspace's root `.build` DerivedData location so explicit SDK stub
   references match native SwiftPM paths. If generation reports unresolved stubs,
   clean and generate again after package resolution, before building.
 - Xcode must inherit the selected environment when it starts. Scheme launch

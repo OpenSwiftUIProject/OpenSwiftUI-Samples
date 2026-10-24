@@ -16,7 +16,7 @@ Use `iOS_run` or `visionOS_run` for a simulator.
 To run the board tests on macOS from the repository root:
 
 ```sh
-mise exec -- xcodebuild test -workspace App/OpenSwiftUISamples.xcworkspace \
+mise exec -- xcodebuild test -workspace OpenSwiftUISamples.xcworkspace \
     -scheme Game2048App -destination 'platform=macOS' -only-testing:Game2048Tests
 ```
 

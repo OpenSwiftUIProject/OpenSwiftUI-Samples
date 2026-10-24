@@ -57,17 +57,18 @@ platform, then fall back to an available simulator. Run targets require a specif
 device; `generic/platform=...` is only supported by build targets.
 `make apple_setup` generates without opening Xcode.
 
-The workspace stores DerivedData in a workspace-specific folder under
-`App/.build`. Build the `.xcworkspace` without overriding `-derivedDataPath` or
-`-clonedSourcePackagesDirPath`. The shared dependency helper reads the workspace package state here so each
-sample references the same SDK stub checkout as native SwiftPM.
+The workspace stores DerivedData in a workspace-specific folder under the root
+`.build` directory. Build the `.xcworkspace` without overriding `-derivedDataPath`
+or `-clonedSourcePackagesDirPath`. The shared dependency helper reads the workspace
+package state here so each sample references the same SDK stub checkout as native
+SwiftPM.
 
 If generation reports that remote SDK stubs are not resolved, run these commands
 once more before building:
 
 ```sh
-mise exec -- tuist clean --path App
-mise exec -- tuist generate --path App --no-open
+mise exec -- tuist clean
+mise exec -- tuist generate --no-open
 ```
 
 The first pass resolves the packages; the second adds the SDK stub references.
@@ -79,7 +80,7 @@ To reopen the workspace, fully quit Xcode, then launch it from the configured
 terminal:
 
 ```sh
-mise exec -- open -a "$(xcode-select -p)/../.." App/OpenSwiftUISamples.xcworkspace
+mise exec -- open -a "$(xcode-select -p)/../.." OpenSwiftUISamples.xcworkspace
 ```
 
 An existing Xcode process keeps its original environment. Finder and Dock launches
@@ -113,9 +114,11 @@ and [command-line device guide](https://developer.apple.com/documentation/xcode/
 
 ## Project configuration
 
-Each sample owns its `Project.swift`. The shared `Project.sample(...)` helper
-creates a source module, an app, and optional unit tests. OpenSwiftUI selection
-and SDK stub references live in `Tuist/ProjectDescriptionHelpers`.
+The root `Workspace.swift` includes `Samples/*`. Run `mise exec -- tuist generate --no-open`
+from the repository root to generate the workspace. Each sample owns its `Project.swift`.
+The shared `Project.sample(...)` helper creates a source module, an app, and optional
+unit tests. OpenSwiftUI selection and SDK stub references live in
+`Tuist/ProjectDescriptionHelpers`.
 
 The `sui` configuration uses system SwiftUI without an OpenSwiftUI package
 reference. Other configurations add the selected OpenSwiftUI package and define

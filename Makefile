@@ -17,8 +17,8 @@ endif
 apple_setup:
 	mise trust
 	mise install
-	mise exec -- tuist clean --path App
-	mise exec -- tuist generate --path App --no-open
+	mise exec -- tuist clean
+	mise exec -- tuist generate --no-open
 
 iOS: DESTINATION ?= generic/platform=iOS Simulator
 macOS: DESTINATION ?= platform=macOS
@@ -26,7 +26,7 @@ visionOS: DESTINATION ?= generic/platform=visionOS Simulator
 
 iOS macOS visionOS:
 	mise exec -- xcodebuild \
-		-workspace App/OpenSwiftUISamples.xcworkspace \
+		-workspace OpenSwiftUISamples.xcworkspace \
 		-scheme "$(SAMPLE)App" \
 		-configuration "$(CONFIGURATION)" \
 		-destination "$(DESTINATION)" \
