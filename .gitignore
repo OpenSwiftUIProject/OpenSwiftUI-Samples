@@ -6,6 +6,8 @@
 build/
 DerivedData/
 Derived/
+Web/dist/
+Web/Package.resolved
 *.xcodeproj/
 *.xcworkspace/
 xcuserdata/

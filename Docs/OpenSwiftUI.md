@@ -126,3 +126,25 @@ reference. Other configurations add the selected OpenSwiftUI package and define
 
 After migrating from the previous SwiftPM sample layout, use Xcode's Clean Build
 Folder once to remove old sample modules before building the new targets.
+
+## Web build and deployment
+
+Web builds use a standalone SwiftPM manifest in [`Web/Package.swift`](../Web/Package.swift)
+that shares `Samples/*/Sources` without modifying the root Tuist Apple workspace.
+Install a swift.org Swift 6.3.2 toolchain and its matching `swift-6.3.2-RELEASE_wasm`
+SDK (via `swiftly` or `swift sdk install`), then run:
+
+```sh
+# Using remote OpenSwiftUI on wasi/dev:
+make web SAMPLE=HelloWorld
+make web SAMPLE=Game2048
+
+# Or using sibling ../OpenSwiftUI checkouts:
+MISE_ENV=local make web SAMPLE=Game2048
+MISE_ENV=local make web_run SAMPLE=Game2048 PORT=8000
+```
+
+Each build writes a self-contained static directory to `Web/dist/<SAMPLE>/`
+(override with `WEB_OUTPUT=<dir>`), including `index.html`, `app.js`, and
+`Bundle/<SAMPLE>Web.wasm`. Host the directory directly on any static server or
+subpath deployment target such as GitHub Pages or Cloudflare Pages.

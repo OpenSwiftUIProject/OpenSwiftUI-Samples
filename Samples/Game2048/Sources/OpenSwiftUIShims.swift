@@ -12,16 +12,19 @@ import OpenSwiftUI
 // MARK: - Accessibility
 
 extension View {
+    @_disfavoredOverload
     nonisolated func accessibilityLabel<S: StringProtocol>(_: S) -> some View {
         self
     }
 
+    @_disfavoredOverload
     nonisolated func accessibilityElement(
         children _: AccessibilityChildBehavior = .ignore
     ) -> some View {
         self
     }
 
+    @_disfavoredOverload
     nonisolated func accessibilityHidden(_: Bool) -> some View {
         self
     }
@@ -30,12 +33,14 @@ extension View {
 // MARK: - Content transitions
 
 extension View {
+    @_disfavoredOverload
     nonisolated func contentTransition(_: ContentTransition) -> some View {
         self
     }
 }
 
 extension ContentTransition {
+    @_disfavoredOverload
     static func numericText(value _: Double) -> ContentTransition {
         .identity
     }

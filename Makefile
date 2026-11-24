@@ -12,7 +12,10 @@ ifeq ($(filter $(SAMPLES),$(SAMPLE)),)
 $(error Unknown SAMPLE '$(SAMPLE)'. Select from: $(SAMPLES).)
 endif
 
-.PHONY: apple_setup iOS macOS visionOS iOS_run macOS_run visionOS_run android_setup android linux_setup linux
+PORT ?= 8000
+WEB_OUTPUT ?=
+
+.PHONY: apple_setup iOS macOS visionOS iOS_run macOS_run visionOS_run web web_run android_setup android linux_setup linux
 
 apple_setup:
 	mise trust
@@ -37,6 +40,17 @@ iOS_run macOS_run visionOS_run:
 	mise exec -- xcrun python3 Scripts/run-apple.py \
 		"$(@:_run=)" --sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
 		--destination "$(DESTINATION)" --development-team "$(DEVELOPMENT_TEAM)"
+
+web:
+	mise exec -- python3 Scripts/build-web.py \
+		--sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
+		$(if $(strip $(WEB_OUTPUT)),--output "$(WEB_OUTPUT)")
+
+web_run:
+	mise exec -- python3 Scripts/build-web.py \
+		--sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
+		$(if $(strip $(WEB_OUTPUT)),--output "$(WEB_OUTPUT)") \
+		--serve --port "$(PORT)"
 
 android_setup android:
 	@echo "Android is not supported yet."

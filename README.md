@@ -1,6 +1,6 @@
 # OpenSwiftUI-Samples
 
-Sample apps built with OpenSwiftUI for iOS, macOS, and visionOS.
+Sample apps built with OpenSwiftUI for iOS, macOS, visionOS, and Web (WASI).
 
 ## Samples
 
@@ -25,11 +25,15 @@ Usage:
   make apple_setup
   make <platform> [SAMPLE=<name>] [CONFIGURATION=<config>] [DESTINATION='<destination>'] [DEVELOPMENT_TEAM=<id>]
   make [<platform>_run] [SAMPLE=<name>] [CONFIGURATION=<config>] [DESTINATION='<destination>'] [DEVELOPMENT_TEAM=<id>]
+  make web [SAMPLE=<name>] [CONFIGURATION=<config>] [WEB_OUTPUT=<dir>]
+  make web_run [SAMPLE=<name>] [CONFIGURATION=<config>] [PORT=<port>]
 
 Targets:
   apple_setup       Install tools, clean, and generate the workspace without opening Xcode.
   <platform>        Build for iOS, macOS, or visionOS.
   <platform>_run    Build and launch. Default: macOS_run.
+  web               Build a deployable static Web bundle into Web/dist/<SAMPLE>.
+  web_run           Build and serve the static Web bundle over local HTTP.
 
 Options:
   SAMPLE            Sample directory name under Samples/. Default: HelloWorld.
