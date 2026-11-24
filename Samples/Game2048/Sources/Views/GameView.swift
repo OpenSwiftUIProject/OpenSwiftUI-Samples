@@ -20,7 +20,7 @@ struct GameView: View {
                 .ignoresSafeArea()
 
             GeometryReader { proxy in
-                #if os(macOS)
+                #if os(macOS) || os(WASI)
                 // Reserve room for the header, footer, and stack spacing so
                 // the entire column stays aligned with the square board.
                 let columnWidth = max(
