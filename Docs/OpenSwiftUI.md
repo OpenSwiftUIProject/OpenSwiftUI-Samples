@@ -131,15 +131,30 @@ Folder once to remove old sample modules before building the new targets.
 
 Web builds use a standalone SwiftPM manifest in [`Web/Package.swift`](../Web/Package.swift)
 that shares `Samples/*/Sources` without modifying the root Tuist Apple workspace.
-Install a swift.org Swift 6.3.2 toolchain and its matching `swift-6.3.2-RELEASE_wasm`
-SDK (via `swiftly` or `swift sdk install`), then run:
+
+1. Install the open-source swift.org Swift `6.3.2` toolchain (for example via
+   [`swiftly`](https://www.swift.org/install/): `swiftly install 6.3.2`).
+   Xcode's bundled Apple Swift toolchain cannot cross-compile with WASI Swift SDKs.
+2. Verify the toolchain, install `swift-6.3.2-RELEASE_wasm` if needed, and resolve
+   Web dependencies:
 
 ```sh
-# Using remote OpenSwiftUI on wasi/dev:
+make web_setup WEB_INSTALL_SDK=1
+```
+
+3. Build or serve a sample (uses remote `OpenSwiftUI` on `wasi/dev` by default):
+
+```sh
 make web SAMPLE=HelloWorld
 make web SAMPLE=Game2048
+make web_run SAMPLE=Game2048 PORT=8000
+```
 
-# Or using sibling ../OpenSwiftUI checkouts:
+To build against local sibling checkouts (`../OpenSwiftUI` and its sibling
+dependencies prepared with `../OpenSwiftUI/Scripts/wasm_setup.sh`), pass
+`MISE_ENV=local` (or `OPENSWIFTUI_USE_LOCAL_DEPS=1` without `mise`):
+
+```sh
 MISE_ENV=local make web SAMPLE=Game2048
 MISE_ENV=local make web_run SAMPLE=Game2048 PORT=8000
 ```

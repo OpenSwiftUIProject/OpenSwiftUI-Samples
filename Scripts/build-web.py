@@ -25,7 +25,7 @@ BACKGROUNDS = {
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build and optionally serve an OpenSwiftUI sample for Web deployment."
+        description="Prepare, build, and optionally serve an OpenSwiftUI sample for Web deployment."
     )
     parser.add_argument(
         "--sample",
@@ -41,6 +41,16 @@ def parse_args() -> argparse.Namespace:
         "--output",
         default="",
         help="Output directory for the deployable static site (default: Web/dist/<Sample>).",
+    )
+    parser.add_argument(
+        "--prepare",
+        action="store_true",
+        help="Verify the Swift WASM toolchain/SDK and resolve Web SwiftPM dependencies.",
+    )
+    parser.add_argument(
+        "--install-sdk",
+        action="store_true",
+        help="Automatically install the matching swift.org WASM Swift SDK if missing.",
     )
     parser.add_argument(
         "--serve",
@@ -89,11 +99,199 @@ def ensure_sample_symlinks(repo_root: Path, web_dir: Path) -> list[str]:
     return discovered
 
 
+def prepare_web_environment(base_env: dict[str, str]) -> dict[str, str]:
+    validate_environment(base_env)
+    env = base_env.copy()
+
+    use_local = env.get("OPENSWIFTUI_USE_LOCAL_DEPS") == "1"
+    local_flag = "1" if use_local else "0"
+    env["OPENSWIFTUI_USE_LOCAL_DEPS"] = local_flag
+    env["OPENATTRIBUTEGRAPH_USE_LOCAL_DEPS"] = local_flag
+    env["OPENRENDERBOX_USE_LOCAL_DEPS"] = local_flag
+
+    env["OPENSWIFTUI_WASI"] = "1"
+    env["OPENSWIFTUI_BUILD_FOR_DARWIN_PLATFORM"] = "0"
+    env["OPENATTRIBUTEGRAPH_BUILD_FOR_DARWIN_PLATFORM"] = "0"
+    env["OPENRENDERBOX_BUILD_FOR_DARWIN_PLATFORM"] = "0"
+    env["OPENCOREGRAPHICS_BUILD_FOR_DARWIN_PLATFORM"] = "0"
+    env["OPENSWIFTUI_LIBRARY_EVOLUTION"] = "0"
+    env["OPENATTRIBUTEGRAPH_LIBRARY_EVOLUTION"] = "0"
+    env["OPENRENDERBOX_LIBRARY_EVOLUTION"] = "0"
+    env["OPENCOREGRAPHICS_LIBRARY_EVOLUTION"] = "0"
+    env["OPENSWIFTUI_RENDER_GTK"] = "0"
+    env["OPENSWIFTUI_OPENATTRIBUTESHIMS_ATTRIBUTEGRAPH"] = "0"
+    env["OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE"] = "1"
+    env["OPENATTRIBUTEGRAPH_OPENATTRIBUTESHIMS_COMPUTE"] = "1"
+    env["OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_BINARY"] = "0"
+    env["OPENATTRIBUTEGRAPH_OPENATTRIBUTESHIMS_COMPUTE_BINARY"] = "0"
+    env["OPENSWIFTUI_SWIFT_TOOLCHAIN_SUPPORTED"] = "0"
+
+    if "OPENSWIFTUI_WEB_COMPUTE_SOURCE_VERSION" in env:
+        env["OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_SOURCE_VERSION"] = env[
+            "OPENSWIFTUI_WEB_COMPUTE_SOURCE_VERSION"
+        ]
+    else:
+        env.pop("OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_SOURCE_VERSION", None)
+        env.pop("OPENATTRIBUTEGRAPH_OPENATTRIBUTESHIMS_COMPUTE_SOURCE_VERSION", None)
+
+    return env
+
+
+def default_wasm_sdk_url(swift_release: str, swift_sdk_id: str) -> str:
+    return (
+        f"https://download.swift.org/swift-{swift_release}-release/wasm-sdk/"
+        f"swift-{swift_release}-RELEASE/{swift_sdk_id}.artifactbundle.tar.gz"
+    )
+
+
+def build_swift_command(
+    env: dict[str, str],
+    swift_release: str,
+    swift_args: list[str],
+    home_dir: Path | None = None,
+) -> list[str]:
+    explicit_swift = env.get("OPENSWIFTUI_WEB_SWIFT_BIN")
+    if explicit_swift:
+        return [explicit_swift, *swift_args]
+
+    home = home_dir or Path(env.get("HOME", str(Path.home())))
+    swiftly = shutil.which("swiftly", path=env.get("PATH"))
+    if swiftly is None:
+        candidate = home / ".swiftly" / "bin" / "swiftly"
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            swiftly = str(candidate)
+
+    if swiftly:
+        return [swiftly, "run", "swift", *swift_args, f"+{swift_release}"]
+
+    toolchain_name = f"swift-{swift_release}-RELEASE.xctoolchain"
+    for toolchain_root in (
+        home / "Library" / "Developer" / "Toolchains",
+        Path("/Library/Developer/Toolchains"),
+    ):
+        toolchain_swift = toolchain_root / toolchain_name / "usr" / "bin" / "swift"
+        if toolchain_swift.is_file() and os.access(toolchain_swift, os.X_OK):
+            return [str(toolchain_swift), *swift_args]
+
+    return ["swift", *swift_args]
+
+
+def verify_web_toolchain_and_sdk(
+    env: dict[str, str],
+    swift_release: str,
+    swift_sdk_id: str,
+    install_sdk: bool = False,
+) -> None:
+    version_cmd = build_swift_command(env, swift_release, ["--version"])
+    try:
+        version_proc = subprocess.run(
+            version_cmd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise SystemExit(
+            f"Swift {swift_release} toolchain not found ({exc}).\n"
+            f"Install swiftly (https://www.swift.org/install/) and run:\n"
+            f"  swiftly install {swift_release}"
+        ) from exc
+
+    combined_version = f"{version_proc.stdout}\n{version_proc.stderr}".strip()
+    if version_proc.returncode != 0:
+        raise SystemExit(
+            f"Unable to run Swift {swift_release} toolchain:\n{combined_version}\n\n"
+            f"Install Swift {swift_release} first, for example:\n"
+            f"  swiftly install {swift_release}"
+        )
+
+    if sys.platform == "darwin" and "swiftlang-" in combined_version:
+        raise SystemExit(
+            f"Resolved Xcode's bundled Apple Swift toolchain instead of swift.org Swift {swift_release}.\n"
+            f"WASI Swift SDK builds require an open-source swift.org toolchain.\n"
+            f"Install Swift {swift_release} via swiftly or swift.org:\n"
+            f"  swiftly install {swift_release}"
+        )
+
+    sdk_list_cmd = build_swift_command(env, swift_release, ["sdk", "list"])
+    sdk_proc = subprocess.run(
+        sdk_list_cmd,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    installed_sdks = {line.strip() for line in sdk_proc.stdout.splitlines() if line.strip()}
+    if swift_sdk_id in installed_sdks:
+        return
+
+    sdk_url = env.get("OPENSWIFTUI_WEB_SWIFT_SDK_URL") or default_wasm_sdk_url(
+        swift_release, swift_sdk_id
+    )
+    if install_sdk:
+        print(f"Installing Swift WASM SDK '{swift_sdk_id}' from {sdk_url} ...")
+        install_cmd = build_swift_command(env, swift_release, ["sdk", "install", sdk_url])
+        subprocess.run(install_cmd, env=env, check=True)
+        return
+
+    install_hint = " ".join(build_swift_command(env, swift_release, ["sdk", "install", sdk_url]))
+    raise SystemExit(
+        f"Swift WASM SDK '{swift_sdk_id}' is not installed.\n"
+        f"Install it automatically with:\n"
+        f"  make web_setup WEB_INSTALL_SDK=1\n"
+        f"or manually with:\n"
+        f"  {install_hint}"
+    )
+
+
+def prepare_web_workspace(
+    repo_root: Path,
+    install_sdk: bool = False,
+) -> None:
+    web_dir = repo_root / "Web"
+    ensure_sample_symlinks(repo_root, web_dir)
+    env = prepare_web_environment(os.environ)
+
+    if env.get("OPENSWIFTUI_USE_LOCAL_DEPS") == "1":
+        local_osui = (repo_root.parent / "OpenSwiftUI").resolve()
+        if not local_osui.is_dir():
+            raise SystemExit(
+                f"OPENSWIFTUI_USE_LOCAL_DEPS=1 requires a sibling OpenSwiftUI checkout at {local_osui}."
+            )
+
+    swift_release = env.get("OPENSWIFTUI_WEB_SWIFT_RELEASE", "6.3.2")
+    swift_sdk_id = env.get("OPENSWIFTUI_WEB_SWIFT_SDK_ID", f"swift-{swift_release}-RELEASE_wasm")
+    verify_web_toolchain_and_sdk(
+        env=env,
+        swift_release=swift_release,
+        swift_sdk_id=swift_sdk_id,
+        install_sdk=install_sdk,
+    )
+
+    resolve_cmd = build_swift_command(
+        env,
+        swift_release,
+        [
+            "package",
+            "--build-system",
+            "native",
+            "--swift-sdk",
+            swift_sdk_id,
+            "resolve",
+        ],
+    )
+    subprocess.run(resolve_cmd, cwd=web_dir, env=env, check=True)
+    print(f"Web workspace ready (Swift {swift_release}, SDK {swift_sdk_id}).")
+
+
 def build_web_sample(
     repo_root: Path,
     sample: str,
     configuration: str,
     output_dir: Path,
+    check_toolchain: bool = False,
+    install_sdk: bool = False,
 ) -> None:
     web_dir = repo_root / "Web"
     samples = ensure_sample_symlinks(repo_root, web_dir)
@@ -105,24 +303,18 @@ def build_web_sample(
     if config_lower not in {"debug", "release"}:
         raise SystemExit(f"Unsupported CONFIGURATION '{configuration}'. Use Debug or Release.")
 
-    env = os.environ.copy()
-    validate_environment(env)
-
-    env["OPENSWIFTUI_WASI"] = "1"
-    env["OPENSWIFTUI_BUILD_FOR_DARWIN_PLATFORM"] = "0"
-    env["OPENSWIFTUI_RENDER_GTK"] = "0"
-    env["OPENSWIFTUI_OPENATTRIBUTESHIMS_ATTRIBUTEGRAPH"] = "0"
-    env["OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE"] = "1"
-    env["OPENSWIFTUI_SWIFT_TOOLCHAIN_SUPPORTED"] = "0"
-    if "OPENSWIFTUI_WEB_COMPUTE_SOURCE_VERSION" in env:
-        env["OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_SOURCE_VERSION"] = env[
-            "OPENSWIFTUI_WEB_COMPUTE_SOURCE_VERSION"
-        ]
-    else:
-        env.pop("OPENSWIFTUI_OPENATTRIBUTESHIMS_COMPUTE_SOURCE_VERSION", None)
-
+    env = prepare_web_environment(os.environ)
     swift_release = env.get("OPENSWIFTUI_WEB_SWIFT_RELEASE", "6.3.2")
     swift_sdk_id = env.get("OPENSWIFTUI_WEB_SWIFT_SDK_ID", f"swift-{swift_release}-RELEASE_wasm")
+
+    if check_toolchain:
+        verify_web_toolchain_and_sdk(
+            env=env,
+            swift_release=swift_release,
+            swift_sdk_id=swift_sdk_id,
+            install_sdk=install_sdk,
+        )
+
     product = f"{sample}Web"
     title = f"{DISPLAY_NAMES.get(sample, sample)} — OpenSwiftUI Web"
     background = BACKGROUNDS.get(sample, "#111216")
@@ -149,17 +341,7 @@ def build_web_sample(
         str(output_dir),
     ]
 
-    swiftly = shutil.which("swiftly", path=env.get("PATH"))
-    if swiftly is None:
-        candidate = Path.home() / ".swiftly" / "bin" / "swiftly"
-        if candidate.is_file() and os.access(candidate, os.X_OK):
-            swiftly = str(candidate)
-
-    if swiftly:
-        cmd = [swiftly, "run", "swift", *package_args, f"+{swift_release}"]
-    else:
-        cmd = ["swift", *package_args]
-
+    cmd = build_swift_command(env, swift_release, package_args)
     subprocess.run(cmd, cwd=web_dir, env=env, check=True)
 
 
@@ -177,6 +359,10 @@ def serve_directory(directory: Path, host: str, port: int) -> None:
 def main() -> int:
     args = parse_args()
     repo_root = Path(__file__).resolve().parent.parent
+    if args.prepare:
+        prepare_web_workspace(repo_root=repo_root, install_sdk=args.install_sdk)
+        return 0
+
     output_dir = (
         Path(args.output).resolve()
         if args.output
@@ -187,6 +373,8 @@ def main() -> int:
         sample=args.sample,
         configuration=args.configuration,
         output_dir=output_dir,
+        check_toolchain=True,
+        install_sdk=args.install_sdk,
     )
     if args.serve:
         serve_directory(output_dir, args.host, args.port)

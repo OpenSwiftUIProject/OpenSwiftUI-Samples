@@ -14,8 +14,10 @@ endif
 
 PORT ?= 8000
 WEB_OUTPUT ?=
+WEB_INSTALL_SDK ?=
+MISE_EXEC = $(if $(shell command -v mise 2>/dev/null),mise exec --,)
 
-.PHONY: apple_setup iOS macOS visionOS iOS_run macOS_run visionOS_run web web_run android_setup android linux_setup linux
+.PHONY: apple_setup iOS macOS visionOS iOS_run macOS_run visionOS_run web_setup web web_run android_setup android linux_setup linux
 
 apple_setup:
 	mise trust
@@ -41,13 +43,18 @@ iOS_run macOS_run visionOS_run:
 		"$(@:_run=)" --sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
 		--destination "$(DESTINATION)" --development-team "$(DEVELOPMENT_TEAM)"
 
+web_setup:
+	@if command -v mise >/dev/null 2>&1; then mise trust && mise install; fi
+	$(MISE_EXEC) python3 Scripts/build-web.py --prepare \
+		$(if $(filter 1 true YES yes,$(WEB_INSTALL_SDK)),--install-sdk)
+
 web:
-	mise exec -- python3 Scripts/build-web.py \
+	$(MISE_EXEC) python3 Scripts/build-web.py \
 		--sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
 		$(if $(strip $(WEB_OUTPUT)),--output "$(WEB_OUTPUT)")
 
 web_run:
-	mise exec -- python3 Scripts/build-web.py \
+	$(MISE_EXEC) python3 Scripts/build-web.py \
 		--sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
 		$(if $(strip $(WEB_OUTPUT)),--output "$(WEB_OUTPUT)") \
 		--serve --port "$(PORT)"
