@@ -1,0 +1,61 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+def sampleName = (project.findProperty('sample') ?: 'HelloWorld').toString()
+def appDisplayName = (project.findProperty('displayName') ?: sampleName).toString()
+def swiftJniLibsDir = project.findProperty('swiftJniLibsDir')
+    ? new File(project.findProperty('swiftJniLibsDir').toString())
+    : new File(project.buildDir, "generated/swift-jniLibs/${sampleName}")
+
+android {
+    namespace 'org.openswiftui.samples'
+    compileSdkVersion 35
+
+    defaultConfig {
+        applicationId "org.openswiftui.samples.${sampleName.toLowerCase()}"
+        minSdkVersion 28
+        targetSdkVersion 34
+        versionCode 1
+        versionName '1.0'
+        resValue 'string', 'app_name', "\"${appDisplayName.replace('"', '\\"')}\""
+        resValue 'string', 'native_lib_name', "\"${sampleName}Android\""
+    }
+
+    packagingOptions.jniLibs.keepDebugSymbols += '**/*.so'
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs += swiftJniLibsDir.absolutePath
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    splits {
+        abi {
+            reset()
+            enable true
+            universalApk false
+            include 'arm64-v8a'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    api project(':uikit')
+}

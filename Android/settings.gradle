@@ -1,0 +1,25 @@
+rootProject.name = 'OpenSwiftUISamplesAndroid'
+include ':app'
+include ':uikit'
+
+def repoRoot = new File(rootProject.projectDir, '..').canonicalFile
+def uikitOverride = System.getenv('OPENSWIFTUI_UIKIT_CROSS_PLATFORM_PATH') ?: System.getenv('OPENSWIFTUI_ANDROID_UIKIT_PATH')
+def useLocalDeps = System.getenv('OPENSWIFTUI_USE_LOCAL_DEPS') == '1'
+def siblingUIKit = new File(repoRoot.parentFile, 'UIKit-cross-platform')
+
+File uikitDir
+if (uikitOverride) {
+    uikitDir = new File(uikitOverride)
+} else if (useLocalDeps && new File(siblingUIKit, 'build.gradle').isFile()) {
+    uikitDir = siblingUIKit
+} else {
+    def primary = new File(repoRoot, '.build/android-samples/swift/checkouts/UIKit-cross-platform')
+    def lowercase = new File(repoRoot, '.build/android-samples/swift/checkouts/uikit-cross-platform')
+    uikitDir = new File(primary, 'build.gradle').isFile() ? primary : lowercase
+}
+
+if (!new File(uikitDir, 'build.gradle').isFile()) {
+    throw new GradleException("UIKit-cross-platform Gradle project not found at ${uikitDir}. Run 'make android_setup' first.")
+}
+
+project(':uikit').projectDir = uikitDir

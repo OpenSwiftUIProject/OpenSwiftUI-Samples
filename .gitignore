@@ -6,6 +6,11 @@
 build/
 DerivedData/
 Derived/
+Android/dist/
+Android/Package.resolved
+Android/.gradle/
+Android/build/
+Android/app/build/
 *.xcodeproj/
 *.xcworkspace/
 xcuserdata/

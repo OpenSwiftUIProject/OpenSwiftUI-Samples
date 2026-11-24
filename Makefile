@@ -12,7 +12,13 @@ ifeq ($(filter $(SAMPLES),$(SAMPLE)),)
 $(error Unknown SAMPLE '$(SAMPLE)'. Select from: $(SAMPLES).)
 endif
 
-.PHONY: apple_setup iOS macOS visionOS iOS_run macOS_run visionOS_run android_setup android linux_setup linux
+ANDROID_AVD ?=
+ANDROID_SERIAL ?=
+ANDROID_OUTPUT ?=
+ANDROID_INSTALL_SDK ?=
+MISE_EXEC = $(if $(shell command -v mise 2>/dev/null),mise exec --,)
+
+.PHONY: apple_setup iOS macOS visionOS iOS_run macOS_run visionOS_run android_setup android android_run linux_setup linux
 
 apple_setup:
 	mise trust
@@ -38,8 +44,25 @@ iOS_run macOS_run visionOS_run:
 		"$(@:_run=)" --sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
 		--destination "$(DESTINATION)" --development-team "$(DEVELOPMENT_TEAM)"
 
-android_setup android:
-	@echo "Android is not supported yet."
+android_setup:
+	@if command -v mise >/dev/null 2>&1; then mise trust; fi
+	$(MISE_EXEC) python3 Scripts/build-android.py --prepare \
+		$(if $(filter 1 true YES yes,$(ANDROID_INSTALL_SDK)),--install-sdk)
+
+android:
+	@if command -v mise >/dev/null 2>&1; then mise trust; fi
+	$(MISE_EXEC) python3 Scripts/build-android.py \
+		--sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
+		$(if $(strip $(ANDROID_OUTPUT)),--output "$(ANDROID_OUTPUT)")
+
+android_run:
+	@if command -v mise >/dev/null 2>&1; then mise trust; fi
+	$(MISE_EXEC) python3 Scripts/build-android.py \
+		--sample "$(SAMPLE)" --configuration "$(CONFIGURATION)" \
+		$(if $(strip $(ANDROID_OUTPUT)),--output "$(ANDROID_OUTPUT)") \
+		$(if $(strip $(ANDROID_AVD)),--avd "$(ANDROID_AVD)") \
+		$(if $(strip $(ANDROID_SERIAL)),--serial "$(ANDROID_SERIAL)") \
+		--run
 
 linux_setup linux:
 	@echo "Linux is not supported yet."

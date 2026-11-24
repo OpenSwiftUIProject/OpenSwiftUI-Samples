@@ -126,3 +126,50 @@ reference. Other configurations add the selected OpenSwiftUI package and define
 
 After migrating from the previous SwiftPM sample layout, use Xcode's Clean Build
 Folder once to remove old sample modules before building the new targets.
+
+## Android build and deployment
+
+Android builds use a standalone SwiftPM and Gradle project in [`Android/`](../Android)
+that shares `Samples/*/Sources` without modifying the root Tuist Apple workspace.
+
+1. Install the open-source swift.org Swift `6.3.2` toolchain (for example via
+   [`swiftly`](https://www.swift.org/install/): `swiftly install 6.3.2`).
+   Xcode's bundled Apple Swift toolchain cannot cross-compile with Android Swift SDKs.
+2. Install Android SDK Platform 35, NDK r27d (`27.3.13750724`), platform-tools,
+   emulator, and JDK 17+ (Android Studio's bundled JBR is detected automatically):
+
+```sh
+sdkmanager "platforms;android-35" "ndk;27.3.13750724" "platform-tools" "emulator"
+```
+
+3. Verify the toolchain, download and link `swift-6.3.2-RELEASE_android` against NDK
+   r27d if needed, and resolve remote Android dependencies (`OpenSwiftUI`,
+   `OpenRenderBox`, `Compute`, and `UIKit-cross-platform` on `android/dev` — no
+   sibling checkouts or GitHub SSH key required):
+
+```sh
+make android_setup ANDROID_INSTALL_SDK=1
+```
+
+4. Build or launch a sample on an `arm64-v8a` (API 28+) emulator or physical device:
+
+```sh
+make android SAMPLE=HelloWorld
+make android SAMPLE=Game2048
+make android_run SAMPLE=Game2048 ANDROID_AVD=YOUR_ARM64_AVD
+make android_run SAMPLE=HelloWorld ANDROID_SERIAL=emulator-5554
+```
+
+To develop against local sibling checkouts (`../OpenSwiftUI`, `../UIKit-cross-platform`,
+and sibling dependencies prepared with `../OpenSwiftUI/Scripts/android_setup.sh`),
+pass `MISE_ENV=local` (or `OPENSWIFTUI_USE_LOCAL_DEPS=1` without `mise`):
+
+```sh
+MISE_ENV=local make android SAMPLE=Game2048
+MISE_ENV=local make android_run SAMPLE=Game2048 ANDROID_AVD=YOUR_ARM64_AVD
+```
+
+Each build writes an installable `arm64-v8a` APK to
+`Android/dist/<SAMPLE>/<SAMPLE>-<debug|release>-arm64-v8a.apk` (override the output
+directory with `ANDROID_OUTPUT=<dir>`), with a per-sample application ID
+(`org.openswiftui.samples.<sample>`) so multiple sample APKs can coexist on one device.
